@@ -531,7 +531,7 @@ func PanicLoader(max int) (*Loader[string, string], *[][]string) {
 	var loadCalls [][]string
 	panicLoader := NewBatchedLoader(func(_ context.Context, keys []string) []*Result[string] {
 		panic("Programming error")
-	}, WithBatchCapacity[string, string](max), withSilentLogger[string, string]())
+	}, WithBatchCapacity[string, string](max))
 	return panicLoader, &loadCalls
 }
 

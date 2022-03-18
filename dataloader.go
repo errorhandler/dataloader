@@ -5,7 +5,6 @@ package dataloader
 import (
 	"context"
 	"fmt"
-	"log"
 	"runtime"
 	"sync"
 	"time"
@@ -82,8 +81,7 @@ type Loader[Key any, Value any] struct {
 	// used to close the sleeper of the current batcher
 	endSleeper chan bool
 
-	// used by tests to prevent logs
-	silent bool
+	logger Logger
 
 	// can be set to trace calls to dataloader
 	tracer Tracer[Key, Value]
@@ -132,9 +130,9 @@ func WithClearCacheOnBatch[Key any, Value any]() Option[Key, Value] {
 }
 
 // withSilentLogger turns of log messages. It's used by the tests
-func withSilentLogger[Key any, Value any]() Option[Key, Value] {
+func WithLogger[Key any, Value any](logger Logger) Option[Key, Value] {
 	return func(l *Loader[Key, Value]) {
-		l.silent = true
+		l.logger = logger
 	}
 }
 
@@ -144,11 +142,6 @@ func WithTracer[Key any, Value any](tracer Tracer[Key, Value]) Option[Key, Value
 		l.tracer = tracer
 	}
 }
-
-// // WithOpenTracingTracer allows tracing of calls to Load and LoadMany
-// func WithOpenTracingTracer[Key any, Value any]() Option[Key, Value] {
-// 	return WithTracer(&OpenTracingTracer{})
-// }
 
 // Thunk is a function that will block until the value (*Result) it contains is resolved.
 // After the value it contains is resolved, this function will return the result.
@@ -184,6 +177,10 @@ func NewBatchedLoader[Key comparable, Value any](batchFn BatchFunc[Key, Value], 
 
 	if loader.tracer == nil {
 		loader.tracer = &NoopTracer[Key, Value]{}
+	}
+
+	if loader.logger == nil {
+		loader.logger = &NoopLogger{}
 	}
 
 	return loader
@@ -235,7 +232,7 @@ func (l *Loader[Key, Value]) Load(originalContext context.Context, key Key) Thun
 	l.batchLock.Lock()
 	// start the batch window if it hasn't already started.
 	if l.curBatcher == nil {
-		l.curBatcher = l.newBatcher(l.silent, l.tracer)
+		l.curBatcher = l.newBatcher()
 		// start the current batcher batch function
 		go l.curBatcher.batch(originalContext)
 		// start a sleeper for the current batcher
@@ -375,18 +372,18 @@ type batcher[Key any, Value any] struct {
 	input    chan *batchRequest[Key, Value]
 	batchFn  BatchFunc[Key, Value]
 	finished bool
-	silent   bool
+	logger   Logger
 	tracer   Tracer[Key, Value]
 }
 
 // newBatcher returns a batcher for the current requests
 // all the batcher methods must be protected by a global batchLock
-func (l *Loader[Key, Value]) newBatcher(silent bool, tracer Tracer[Key, Value]) *batcher[Key, Value] {
+func (l *Loader[Key, Value]) newBatcher() *batcher[Key, Value] {
 	return &batcher[Key, Value]{
 		input:   make(chan *batchRequest[Key, Value], l.inputCap),
 		batchFn: l.batchFn,
-		silent:  silent,
-		tracer:  tracer,
+		logger:  l.logger,
+		tracer:  l.tracer,
 	}
 }
 
@@ -419,13 +416,10 @@ func (b *batcher[Key, Value]) batch(originalContext context.Context) {
 		defer func() {
 			if r := recover(); r != nil {
 				panicErr = r
-				if b.silent {
-					return
-				}
 				const size = 64 << 10
 				buf := make([]byte, size)
 				buf = buf[:runtime.Stack(buf, false)]
-				log.Printf("Dataloader: Panic received in batch function: %v\n%s", panicErr, buf)
+				b.logger.Printf("Dataloader: Panic received in batch function: %v\n%s", panicErr, buf)
 			}
 		}()
 		items = b.batchFn(ctx, keys)
