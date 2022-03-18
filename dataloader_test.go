@@ -456,7 +456,6 @@ func TestLoader(t *testing.T) {
 			t.Errorf("did not respect max batch size. Expected %#v, got %#v", expected, calls)
 		}
 	})
-
 }
 
 // test helpers
@@ -475,6 +474,7 @@ func IDLoader(max int) (*Loader, *[][]string) {
 	}, WithBatchCapacity(max))
 	return identityLoader, &loadCalls
 }
+
 func BatchOnlyLoader(max int) (*Loader, *[][]string) {
 	var mu sync.Mutex
 	var loadCalls [][]string
@@ -490,6 +490,7 @@ func BatchOnlyLoader(max int) (*Loader, *[][]string) {
 	}, WithBatchCapacity(max), WithClearCacheOnBatch())
 	return identityLoader, &loadCalls
 }
+
 func ErrorLoader(max int) (*Loader, *[][]string) {
 	var mu sync.Mutex
 	var loadCalls [][]string
@@ -505,6 +506,7 @@ func ErrorLoader(max int) (*Loader, *[][]string) {
 	}, WithBatchCapacity(max))
 	return identityLoader, &loadCalls
 }
+
 func OneErrorLoader(max int) (*Loader, *[][]string) {
 	var mu sync.Mutex
 	var loadCalls [][]string
@@ -524,6 +526,7 @@ func OneErrorLoader(max int) (*Loader, *[][]string) {
 	}, WithBatchCapacity(max))
 	return identityLoader, &loadCalls
 }
+
 func PanicLoader(max int) (*Loader, *[][]string) {
 	var loadCalls [][]string
 	panicLoader := NewBatchedLoader(func(_ context.Context, keys Keys) []*Result {
@@ -531,6 +534,7 @@ func PanicLoader(max int) (*Loader, *[][]string) {
 	}, WithBatchCapacity(max), withSilentLogger())
 	return panicLoader, &loadCalls
 }
+
 func BadLoader(max int) (*Loader, *[][]string) {
 	var mu sync.Mutex
 	var loadCalls [][]string
@@ -544,6 +548,7 @@ func BadLoader(max int) (*Loader, *[][]string) {
 	}, WithBatchCapacity(max))
 	return identityLoader, &loadCalls
 }
+
 func NoCacheLoader(max int) (*Loader, *[][]string) {
 	var mu sync.Mutex
 	var loadCalls [][]string

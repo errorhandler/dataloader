@@ -6,9 +6,11 @@ import (
 	opentracing "github.com/opentracing/opentracing-go"
 )
 
-type TraceLoadFinishFunc func(Thunk)
-type TraceLoadManyFinishFunc func(ThunkMany)
-type TraceBatchFinishFunc func([]*Result)
+type (
+	TraceLoadFinishFunc     func(Thunk)
+	TraceLoadManyFinishFunc func(ThunkMany)
+	TraceBatchFinishFunc    func([]*Result)
+)
 
 // Tracer is an interface that may be used to implement tracing.
 type Tracer interface {
