@@ -7,7 +7,7 @@ import (
 	"context"
 	"fmt"
 
-	dataloader "github.com/graph-gophers/dataloader/v6"
+	dataloader "github.com/errorhandler/dataloader"
 	lru "github.com/hashicorp/golang-lru"
 )
 

@@ -1,4 +1,5 @@
 ## Upgrade from v1 to v2
+
 The only difference between v1 and v2 is that we added use of [context](https://golang.org/pkg/context).
 
 ```diff
@@ -14,6 +15,7 @@ The only difference between v1 and v2 is that we added use of [context](https://
 ```
 
 ## Upgrade from v2 to v3
+
 ```diff
 // dataloader.Interface as added context.Context to methods
 - loader.Prime(key string, value interface{}) Interface
@@ -36,6 +38,7 @@ type Cache interface {
 ```
 
 ## Upgrade from v3 to v4
+
 ```diff
 // dataloader.Interface as now allows interace{} as key rather than string
 - loader.Load(context.Context, key string) Thunk
@@ -62,6 +65,7 @@ type Cache interface {
 ```
 
 ## Upgrade from v4 to v5
+
 ```diff
 // dataloader.Interface as now allows interace{} as key rather than string
 - loader.Load(context.Context, key interface{}) Thunk
@@ -95,5 +99,5 @@ and drop build tags for older versions of Go (1.9).
 The preferred import method includes the major version tag.
 
 ```go
-import "github.com/graph-gophers/dataloader/v6"
+import "github.com/errorhandler/dataloader"
 ```
