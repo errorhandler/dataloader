@@ -9,10 +9,10 @@ import (
 
 func ExampleNoCache() {
 	// go-cache will automaticlly cleanup expired items on given diration
-	cache := &dataloader.NoCache{}
-	loader := dataloader.NewBatchedLoader(batchFunc, dataloader.WithCache(cache))
+	cache := &dataloader.NoCache[string, string]{}
+	loader := dataloader.NewBatchedLoader(batchFunc, dataloader.WithCache[string, string](cache))
 
-	result, err := loader.Load(context.TODO(), dataloader.StringKey("some key"))()
+	result, err := loader.Load(context.TODO(), "some key")()
 	if err != nil {
 		// handle error
 	}
@@ -21,11 +21,11 @@ func ExampleNoCache() {
 	// Output: identity: some key
 }
 
-func batchFunc(_ context.Context, keys dataloader.Keys) []*dataloader.Result {
-	var results []*dataloader.Result
+func batchFunc(_ context.Context, keys []string) []*dataloader.Result[string] {
+	var results []*dataloader.Result[string]
 	// do some pretend work to resolve keys
 	for _, key := range keys {
-		results = append(results, &dataloader.Result{Data: key.String()})
+		results = append(results, &dataloader.Result[string]{Data: key})
 	}
 	return results
 }

@@ -19,7 +19,7 @@ func TestLoader(t *testing.T) {
 		t.Parallel()
 		identityLoader, _ := IDLoader(0)
 		ctx := context.Background()
-		future := identityLoader.Load(ctx, StringKey("1"))
+		future := identityLoader.Load(ctx, "1")
 		value, err := future()
 		if err != nil {
 			t.Error(err.Error())
@@ -33,7 +33,7 @@ func TestLoader(t *testing.T) {
 		t.Parallel()
 		identityLoader, _ := IDLoader(0)
 		ctx := context.Background()
-		future := identityLoader.Load(ctx, StringKey("1"))
+		future := identityLoader.Load(ctx, "1")
 		go future()
 		go future()
 	})
@@ -48,7 +48,7 @@ func TestLoader(t *testing.T) {
 		}()
 		panicLoader, _ := PanicLoader(0)
 		ctx := context.Background()
-		future := panicLoader.Load(ctx, StringKey("1"))
+		future := panicLoader.Load(ctx, "1")
 		_, err := future()
 		if err == nil || err.Error() != "Panic received in batch function: Programming error" {
 			t.Error("Panic was not propagated as an error.")
@@ -64,10 +64,10 @@ func TestLoader(t *testing.T) {
 			}
 		}()
 		panicLoader, _ := PanicLoader(0)
-		futures := []Thunk{}
+		futures := []Thunk[string]{}
 		ctx := context.Background()
 		for i := 0; i < 3; i++ {
-			futures = append(futures, panicLoader.Load(ctx, StringKey(strconv.Itoa(i))))
+			futures = append(futures, panicLoader.Load(ctx, strconv.Itoa(i)))
 		}
 		for _, f := range futures {
 			_, err := f()
@@ -81,7 +81,7 @@ func TestLoader(t *testing.T) {
 		t.Parallel()
 		errorLoader, _ := ErrorLoader(0)
 		ctx := context.Background()
-		future := errorLoader.LoadMany(ctx, Keys{StringKey("1"), StringKey("2"), StringKey("3")})
+		future := errorLoader.LoadMany(ctx, []string{"1", "2", "3"})
 		_, err := future()
 		if len(err) != 3 {
 			t.Error("LoadMany didn't return right number of errors")
@@ -92,7 +92,7 @@ func TestLoader(t *testing.T) {
 		t.Parallel()
 		loader, _ := OneErrorLoader(3)
 		ctx := context.Background()
-		future := loader.LoadMany(ctx, Keys{StringKey("1"), StringKey("2"), StringKey("3")})
+		future := loader.LoadMany(ctx, []string{"1", "2", "3"})
 		_, errs := future()
 		if len(errs) != 3 {
 			t.Errorf("LoadMany didn't return right number of errors (should match size of input)")
@@ -120,7 +120,7 @@ func TestLoader(t *testing.T) {
 		t.Parallel()
 		loader, _ := IDLoader(0)
 		ctx := context.Background()
-		_, err := loader.LoadMany(ctx, Keys{StringKey("1"), StringKey("2"), StringKey("3")})()
+		_, err := loader.LoadMany(ctx, []string{"1", "2", "3"})()
 		if err != nil {
 			t.Errorf("Expected LoadMany() to return nil error slice when no errors occurred")
 		}
@@ -130,7 +130,7 @@ func TestLoader(t *testing.T) {
 		t.Parallel()
 		identityLoader, _ := IDLoader(0)
 		ctx := context.Background()
-		future := identityLoader.LoadMany(ctx, Keys{StringKey("1"), StringKey("2"), StringKey("3")})
+		future := identityLoader.LoadMany(ctx, []string{"1", "2", "3"})
 		go future()
 		go future()
 	})
@@ -145,7 +145,7 @@ func TestLoader(t *testing.T) {
 		}()
 		panicLoader, _ := PanicLoader(0)
 		ctx := context.Background()
-		future := panicLoader.LoadMany(ctx, Keys{StringKey("1")})
+		future := panicLoader.LoadMany(ctx, []string{"1"})
 		_, errs := future()
 		if len(errs) < 1 || errs[0].Error() != "Panic received in batch function: Programming error" {
 			t.Error("Panic was not propagated as an error.")
@@ -156,9 +156,9 @@ func TestLoader(t *testing.T) {
 		t.Parallel()
 		identityLoader, _ := IDLoader(0)
 		ctx := context.Background()
-		future := identityLoader.LoadMany(ctx, Keys{StringKey("1"), StringKey("2"), StringKey("3")})
+		future := identityLoader.LoadMany(ctx, []string{"1", "2", "3"})
 		results, _ := future()
-		if results[0].(string) != "1" || results[1].(string) != "2" || results[2].(string) != "3" {
+		if results[0] != "1" || results[1] != "2" || results[2] != "3" {
 			t.Error("loadmany didn't return the right value")
 		}
 	})
@@ -167,8 +167,8 @@ func TestLoader(t *testing.T) {
 		t.Parallel()
 		identityLoader, loadCalls := IDLoader(0)
 		ctx := context.Background()
-		future1 := identityLoader.Load(ctx, StringKey("1"))
-		future2 := identityLoader.Load(ctx, StringKey("2"))
+		future1 := identityLoader.Load(ctx, "1")
+		future2 := identityLoader.Load(ctx, "2")
 
 		_, err := future1()
 		if err != nil {
@@ -193,10 +193,10 @@ func TestLoader(t *testing.T) {
 		ctx := context.Background()
 
 		n := 10
-		reqs := []Thunk{}
-		keys := Keys{}
+		reqs := []Thunk[string]{}
+		keys := []string{}
 		for i := 0; i < n; i++ {
-			key := StringKey(strconv.Itoa(i))
+			key := strconv.Itoa(i)
 			reqs = append(reqs, faultyLoader.Load(ctx, key))
 			keys = append(keys, key)
 		}
@@ -215,9 +215,9 @@ func TestLoader(t *testing.T) {
 		t.Parallel()
 		identityLoader, loadCalls := IDLoader(2)
 		ctx := context.Background()
-		future1 := identityLoader.Load(ctx, StringKey("1"))
-		future2 := identityLoader.Load(ctx, StringKey("2"))
-		future3 := identityLoader.Load(ctx, StringKey("3"))
+		future1 := identityLoader.Load(ctx, "1")
+		future2 := identityLoader.Load(ctx, "2")
+		future3 := identityLoader.Load(ctx, "3")
 
 		_, err := future1()
 		if err != nil {
@@ -245,8 +245,8 @@ func TestLoader(t *testing.T) {
 		t.Parallel()
 		identityLoader, loadCalls := IDLoader(0)
 		ctx := context.Background()
-		future1 := identityLoader.Load(ctx, StringKey("1"))
-		future2 := identityLoader.Load(ctx, StringKey("1"))
+		future1 := identityLoader.Load(ctx, "1")
+		future2 := identityLoader.Load(ctx, "1")
 
 		_, err := future1()
 		if err != nil {
@@ -269,9 +269,9 @@ func TestLoader(t *testing.T) {
 		t.Parallel()
 		identityLoader, loadCalls := IDLoader(0)
 		ctx := context.Background()
-		identityLoader.Prime(ctx, StringKey("A"), "Cached")
-		future1 := identityLoader.Load(ctx, StringKey("1"))
-		future2 := identityLoader.Load(ctx, StringKey("A"))
+		identityLoader.Prime(ctx, "A", "Cached")
+		future1 := identityLoader.Load(ctx, "1")
+		future2 := identityLoader.Load(ctx, "A")
 
 		_, err := future1()
 		if err != nil {
@@ -289,7 +289,7 @@ func TestLoader(t *testing.T) {
 			t.Errorf("did not respect max batch size. Expected %#v, got %#v", expected, calls)
 		}
 
-		if value.(string) != "Cached" {
+		if value != "Cached" {
 			t.Errorf("did not use primed cache value. Expected '%#v', got '%#v'", "Cached", value)
 		}
 	})
@@ -298,11 +298,11 @@ func TestLoader(t *testing.T) {
 		t.Parallel()
 		identityLoader, loadCalls := IDLoader(0)
 		ctx := context.Background()
-		identityLoader.Prime(ctx, StringKey("A"), "Cached")
-		identityLoader.Prime(ctx, StringKey("B"), "B")
-		future1 := identityLoader.Load(ctx, StringKey("1"))
-		future2 := identityLoader.Clear(ctx, StringKey("A")).Load(ctx, StringKey("A"))
-		future3 := identityLoader.Load(ctx, StringKey("B"))
+		identityLoader.Prime(ctx, "A", "Cached")
+		identityLoader.Prime(ctx, "B", "B")
+		future1 := identityLoader.Load(ctx, "1")
+		future2 := identityLoader.Clear(ctx, "A").Load(ctx, "A")
+		future3 := identityLoader.Load(ctx, "B")
 
 		_, err := future1()
 		if err != nil {
@@ -333,8 +333,8 @@ func TestLoader(t *testing.T) {
 		t.Parallel()
 		batchOnlyLoader, loadCalls := BatchOnlyLoader(0)
 		ctx := context.Background()
-		future1 := batchOnlyLoader.Load(ctx, StringKey("1"))
-		future2 := batchOnlyLoader.Load(ctx, StringKey("1"))
+		future1 := batchOnlyLoader.Load(ctx, "1")
+		future2 := batchOnlyLoader.Load(ctx, "1")
 
 		_, err := future1()
 		if err != nil {
@@ -352,7 +352,7 @@ func TestLoader(t *testing.T) {
 			t.Errorf("did not batch queries. Expected %#v, got %#v", expected, calls)
 		}
 
-		if _, found := batchOnlyLoader.cache.Get(ctx, StringKey("1")); found {
+		if _, found := batchOnlyLoader.cache.Get(ctx, "1"); found {
 			t.Errorf("did not clear cache after batch. Expected %#v, got %#v", false, found)
 		}
 	})
@@ -361,14 +361,14 @@ func TestLoader(t *testing.T) {
 		t.Parallel()
 		identityLoader, loadCalls := IDLoader(0)
 		ctx := context.Background()
-		identityLoader.Prime(ctx, StringKey("A"), "Cached")
-		identityLoader.Prime(ctx, StringKey("B"), "B")
+		identityLoader.Prime(ctx, "A", "Cached")
+		identityLoader.Prime(ctx, "B", "B")
 
 		identityLoader.ClearAll()
 
-		future1 := identityLoader.Load(ctx, StringKey("1"))
-		future2 := identityLoader.Load(ctx, StringKey("A"))
-		future3 := identityLoader.Load(ctx, StringKey("B"))
+		future1 := identityLoader.Load(ctx, "1")
+		future2 := identityLoader.Load(ctx, "A")
+		future3 := identityLoader.Load(ctx, "B")
 
 		_, err := future1()
 		if err != nil {
@@ -395,14 +395,14 @@ func TestLoader(t *testing.T) {
 		t.Parallel()
 		identityLoader, loadCalls := NoCacheLoader(0)
 		ctx := context.Background()
-		identityLoader.Prime(ctx, StringKey("A"), "Cached")
-		identityLoader.Prime(ctx, StringKey("B"), "B")
+		identityLoader.Prime(ctx, "A", "Cached")
+		identityLoader.Prime(ctx, "B", "B")
 
 		identityLoader.ClearAll()
 
-		future1 := identityLoader.Clear(ctx, StringKey("1")).Load(ctx, StringKey("1"))
-		future2 := identityLoader.Load(ctx, StringKey("A"))
-		future3 := identityLoader.Load(ctx, StringKey("B"))
+		future1 := identityLoader.Clear(ctx, "1").Load(ctx, "1")
+		future2 := identityLoader.Load(ctx, "A")
+		future3 := identityLoader.Load(ctx, "B")
 
 		_, err := future1()
 		if err != nil {
@@ -429,12 +429,12 @@ func TestLoader(t *testing.T) {
 		t.Parallel()
 		identityLoader, loadCalls := NoCacheLoader(0)
 		ctx := context.Background()
-		identityLoader.Prime(ctx, StringKey("A"), "Cached")
-		identityLoader.Prime(ctx, StringKey("B"), "B")
+		identityLoader.Prime(ctx, "A", "Cached")
+		identityLoader.Prime(ctx, "B", "B")
 
-		future1 := identityLoader.Load(ctx, StringKey("1"))
-		future2 := identityLoader.Load(ctx, StringKey("A"))
-		future3 := identityLoader.Load(ctx, StringKey("B"))
+		future1 := identityLoader.Load(ctx, "1")
+		future2 := identityLoader.Load(ctx, "A")
+		future3 := identityLoader.Load(ctx, "B")
 
 		_, err := future1()
 		if err != nil {
@@ -459,122 +459,123 @@ func TestLoader(t *testing.T) {
 }
 
 // test helpers
-func IDLoader(max int) (*Loader, *[][]string) {
+func IDLoader(max int) (*Loader[string, string], *[][]string) {
 	var mu sync.Mutex
 	var loadCalls [][]string
-	identityLoader := NewBatchedLoader(func(_ context.Context, keys Keys) []*Result {
-		var results []*Result
+	identityLoader := NewBatchedLoader(func(_ context.Context, keys []string) []*Result[string] {
+		var results []*Result[string]
 		mu.Lock()
-		loadCalls = append(loadCalls, keys.Keys())
+		loadCalls = append(loadCalls, keys)
 		mu.Unlock()
 		for _, key := range keys {
-			results = append(results, &Result{key.String(), nil})
+			results = append(results, &Result[string]{key, nil})
 		}
 		return results
-	}, WithBatchCapacity(max))
+	}, WithBatchCapacity[string, string](max))
 	return identityLoader, &loadCalls
 }
 
-func BatchOnlyLoader(max int) (*Loader, *[][]string) {
+func BatchOnlyLoader(max int) (*Loader[string, string], *[][]string) {
 	var mu sync.Mutex
 	var loadCalls [][]string
-	identityLoader := NewBatchedLoader(func(_ context.Context, keys Keys) []*Result {
-		var results []*Result
+	identityLoader := NewBatchedLoader(func(_ context.Context, keys []string) []*Result[string] {
+		var results []*Result[string]
 		mu.Lock()
-		loadCalls = append(loadCalls, keys.Keys())
+		loadCalls = append(loadCalls, keys)
 		mu.Unlock()
 		for _, key := range keys {
-			results = append(results, &Result{key, nil})
+			results = append(results, &Result[string]{key, nil})
 		}
 		return results
-	}, WithBatchCapacity(max), WithClearCacheOnBatch())
+	}, WithBatchCapacity[string, string](max), WithClearCacheOnBatch[string, string]())
 	return identityLoader, &loadCalls
 }
 
-func ErrorLoader(max int) (*Loader, *[][]string) {
+func ErrorLoader(max int) (*Loader[string, string], *[][]string) {
 	var mu sync.Mutex
 	var loadCalls [][]string
-	identityLoader := NewBatchedLoader(func(_ context.Context, keys Keys) []*Result {
-		var results []*Result
+	identityLoader := NewBatchedLoader(func(_ context.Context, keys []string) []*Result[string] {
+		var results []*Result[string]
 		mu.Lock()
-		loadCalls = append(loadCalls, keys.Keys())
+		loadCalls = append(loadCalls, keys)
 		mu.Unlock()
 		for _, key := range keys {
-			results = append(results, &Result{key, fmt.Errorf("this is a test error")})
+			results = append(results, &Result[string]{key, fmt.Errorf("this is a test error")})
 		}
 		return results
-	}, WithBatchCapacity(max))
+	}, WithBatchCapacity[string, string](max))
 	return identityLoader, &loadCalls
 }
 
-func OneErrorLoader(max int) (*Loader, *[][]string) {
+func OneErrorLoader(max int) (*Loader[string, string], *[][]string) {
 	var mu sync.Mutex
 	var loadCalls [][]string
-	identityLoader := NewBatchedLoader(func(_ context.Context, keys Keys) []*Result {
-		results := make([]*Result, max)
+	identityLoader := NewBatchedLoader(func(_ context.Context, keys []string) []*Result[string] {
+		results := make([]*Result[string], max)
 		mu.Lock()
-		loadCalls = append(loadCalls, keys.Keys())
+		loadCalls = append(loadCalls, keys)
 		mu.Unlock()
 		for i := range keys {
 			var err error
 			if i == 0 {
 				err = errors.New("always error on the first key")
 			}
-			results[i] = &Result{keys[i], err}
+			results[i] = &Result[string]{keys[i], err}
 		}
 		return results
-	}, WithBatchCapacity(max))
+	}, WithBatchCapacity[string, string](max))
 	return identityLoader, &loadCalls
 }
 
-func PanicLoader(max int) (*Loader, *[][]string) {
+func PanicLoader(max int) (*Loader[string, string], *[][]string) {
 	var loadCalls [][]string
-	panicLoader := NewBatchedLoader(func(_ context.Context, keys Keys) []*Result {
+	panicLoader := NewBatchedLoader(func(_ context.Context, keys []string) []*Result[string] {
 		panic("Programming error")
-	}, WithBatchCapacity(max), withSilentLogger())
+	}, WithBatchCapacity[string, string](max), withSilentLogger[string, string]())
 	return panicLoader, &loadCalls
 }
 
-func BadLoader(max int) (*Loader, *[][]string) {
+func BadLoader(max int) (*Loader[string, string], *[][]string) {
 	var mu sync.Mutex
 	var loadCalls [][]string
-	identityLoader := NewBatchedLoader(func(_ context.Context, keys Keys) []*Result {
-		var results []*Result
+	identityLoader := NewBatchedLoader(func(_ context.Context, keys []string) []*Result[string] {
+		var results []*Result[string]
 		mu.Lock()
-		loadCalls = append(loadCalls, keys.Keys())
+		loadCalls = append(loadCalls, keys)
 		mu.Unlock()
-		results = append(results, &Result{keys[0], nil})
+		results = append(results, &Result[string]{keys[0], nil})
 		return results
-	}, WithBatchCapacity(max))
+	}, WithBatchCapacity[string, string](max))
 	return identityLoader, &loadCalls
 }
 
-func NoCacheLoader(max int) (*Loader, *[][]string) {
+func NoCacheLoader(max int) (*Loader[string, string], *[][]string) {
 	var mu sync.Mutex
 	var loadCalls [][]string
-	cache := &NoCache{}
-	identityLoader := NewBatchedLoader(func(_ context.Context, keys Keys) []*Result {
-		var results []*Result
+	cache := &NoCache[string, string]{}
+	_ = cache
+	identityLoader := NewBatchedLoader(func(_ context.Context, keys []string) []*Result[string] {
+		var results []*Result[string]
 		mu.Lock()
-		loadCalls = append(loadCalls, keys.Keys())
+		loadCalls = append(loadCalls, keys)
 		mu.Unlock()
 		for _, key := range keys {
-			results = append(results, &Result{key, nil})
+			results = append(results, &Result[string]{key, nil})
 		}
 		return results
-	}, WithCache(cache), WithBatchCapacity(max))
+	}, WithCache[string, string](cache), WithBatchCapacity[string, string](max))
 	return identityLoader, &loadCalls
 }
 
 // FaultyLoader gives len(keys)-1 results.
-func FaultyLoader() (*Loader, *[][]string) {
+func FaultyLoader() (*Loader[string, string], *[][]string) {
 	var mu sync.Mutex
 	var loadCalls [][]string
 
-	loader := NewBatchedLoader(func(_ context.Context, keys Keys) []*Result {
-		var results []*Result
+	loader := NewBatchedLoader(func(_ context.Context, keys []string) []*Result[string] {
+		var results []*Result[string]
 		mu.Lock()
-		loadCalls = append(loadCalls, keys.Keys())
+		loadCalls = append(loadCalls, keys)
 		mu.Unlock()
 
 		lastKeyIndex := len(keys) - 1
@@ -583,7 +584,7 @@ func FaultyLoader() (*Loader, *[][]string) {
 				break
 			}
 
-			results = append(results, &Result{key, nil})
+			results = append(results, &Result[string]{key, nil})
 		}
 		return results
 	})
@@ -596,10 +597,10 @@ func FaultyLoader() (*Loader, *[][]string) {
 ///////////////////////////////////////////////////
 var a = &Avg{}
 
-func batchIdentity(_ context.Context, keys Keys) (results []*Result) {
+func batchIdentity(_ context.Context, keys []string) (results []*Result[string]) {
 	a.Add(len(keys))
 	for _, key := range keys {
-		results = append(results, &Result{key, nil})
+		results = append(results, &Result[string]{key, nil})
 	}
 	return
 }
@@ -610,7 +611,7 @@ func BenchmarkLoader(b *testing.B) {
 	UserLoader := NewBatchedLoader(batchIdentity)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		UserLoader.Load(_ctx, StringKey(strconv.Itoa(i)))
+		UserLoader.Load(_ctx, strconv.Itoa(i))
 	}
 	log.Printf("avg: %f", a.Avg())
 }

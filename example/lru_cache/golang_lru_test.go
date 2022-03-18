@@ -8,30 +8,30 @@ import (
 	"fmt"
 
 	dataloader "github.com/errorhandler/dataloader"
-	lru "github.com/hashicorp/golang-lru"
+	lru "github.com/errorhandler/golang-lru"
 )
 
 // Cache implements the dataloader.Cache interface
-type cache struct {
-	*lru.ARCCache
+type cache[Key, Value any] struct {
+	*lru.ARCCache[Key, dataloader.Thunk[Value]]
 }
 
 // Get gets an item from the cache
-func (c *cache) Get(_ context.Context, key dataloader.Key) (dataloader.Thunk, bool) {
+func (c *cache[Key, Value]) Get(_ context.Context, key Key) (dataloader.Thunk[Value], bool) {
 	v, ok := c.ARCCache.Get(key)
 	if ok {
-		return v.(dataloader.Thunk), ok
+		return v, ok
 	}
 	return nil, ok
 }
 
 // Set sets an item in the cache
-func (c *cache) Set(_ context.Context, key dataloader.Key, value dataloader.Thunk) {
+func (c *cache[Key, Value]) Set(_ context.Context, key Key, value dataloader.Thunk[Value]) {
 	c.ARCCache.Add(key, value)
 }
 
 // Delete deletes an item in the cache
-func (c *cache) Delete(_ context.Context, key dataloader.Key) bool {
+func (c *cache[Key, Value]) Delete(_ context.Context, key Key) bool {
 	if c.ARCCache.Contains(key) {
 		c.ARCCache.Remove(key)
 		return true
@@ -40,18 +40,18 @@ func (c *cache) Delete(_ context.Context, key dataloader.Key) bool {
 }
 
 // Clear cleasrs the cache
-func (c *cache) Clear() {
+func (c *cache[Key, Value]) Clear() {
 	c.ARCCache.Purge()
 }
 
 func ExampleGolangLRU() {
 	// go-cache will automaticlly cleanup expired items on given duration.
-	c, _ := lru.NewARC(100)
-	cache := &cache{ARCCache: c}
-	loader := dataloader.NewBatchedLoader(batchFunc, dataloader.WithCache(cache))
+	c, _ := lru.NewARC[string, dataloader.Thunk[string]](100)
+	cache := &cache[string, string]{ARCCache: c}
+	loader := dataloader.NewBatchedLoader(batchFunc, dataloader.WithCache[string, string](cache))
 
 	// immediately call the future function from loader
-	result, err := loader.Load(context.TODO(), dataloader.StringKey("some key"))()
+	result, err := loader.Load(context.TODO(), "some key")()
 	if err != nil {
 		// handle error
 	}
@@ -60,11 +60,11 @@ func ExampleGolangLRU() {
 	// Output: identity: some key
 }
 
-func batchFunc(_ context.Context, keys dataloader.Keys) []*dataloader.Result {
-	var results []*dataloader.Result
+func batchFunc(_ context.Context, keys []string) []*dataloader.Result[string] {
+	var results []*dataloader.Result[string]
 	// do some pretend work to resolve keys
 	for _, key := range keys {
-		results = append(results, &dataloader.Result{Data: key.String()})
+		results = append(results, &dataloader.Result[string]{Data: key})
 	}
 	return results
 }
